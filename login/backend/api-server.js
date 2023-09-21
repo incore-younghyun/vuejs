@@ -1,22 +1,65 @@
 const express = require('express')
 const app = express()
 const port = 3000
-// const cors = require('cors')
+const bodyParser = require('body-parser')
+const cookieParser = require('cookie-parser')
+const jwt = require('jsonwebtoken')
 
-// app.all('/*', function(req, res, next){
-//     res.header("Access-Control-Allow-Origin", "*");
-//     res.header("Access-Control-Allow-Headers", "X-Requested-With");
-//     next();
-// });
+const members = [
+  {
+    id:3,
+    name:'도서관',
+    loginId:'lib',
+    loginPw:'africa',
+  },
+  {
+    id:4,
+    name:'홍길동',
+    loginId:'a',
+    loginPw:'1',
+  }
+]
 
-// app.use(cors())
-// app.use(cors({origin:"http://localhost:8080"}))
+
+app.use(bodyParser.json())
 
 app.get('/api/account', (req, res) => {
-  res.send({
-    mid:3,
-    memberName:'홍길동',
-  })
+  if( req.cookies && req.cookies.token ){
+    jwt.verify(req.cookies.token, "abc1234567", (err, decoded) => {
+      if(err){
+        return res.send(401)
+      }
+      res.send(decoded)
+    })
+  } 
+  // else{
+  //   res.send(401)
+  // }
+})
+
+app.post('/api/account', (req, res) => {
+  const loginId = req.body.loginId;
+  const loginPw = req.body.loginPw;
+
+  const member = members.find(m => m.loginId === loginId && m.loginPw === loginPw);
+
+  if (member) {
+    const token = jwt.sign({
+      id: member.id,
+      name: member.name,
+    }, "abc1234567",{
+      expiresIn:"15m",
+      issuer:"africalib"
+
+    })
+    res.cookie("token", token);
+    res.send(member)
+  }else{
+    res.send(404)
+  }
+
+
+  console.log(loginId, loginPw);
 })
 
 app.listen(port, () => {
